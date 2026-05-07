@@ -72,8 +72,9 @@ function CheckoutPage() {
     }
     toast.success(t("checkout.success"));
     if (typeof window !== "undefined") {
-      window.fbq?.("track", "Purchase", { value: total, currency: "MAD" });
-      window.ttq?.track?.("CompletePayment", { value: total, currency: "MAD" });
+      const w = window as unknown as { fbq?: (...a: unknown[]) => void; ttq?: { track?: (e: string, d?: unknown) => void } };
+      w.fbq?.("track", "Purchase", { value: total, currency: "MAD" });
+      w.ttq?.track?.("CompletePayment", { value: total, currency: "MAD" });
     }
     setTimeout(() => navigate({ to: "/" }), 1500);
   }
