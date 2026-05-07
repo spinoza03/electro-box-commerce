@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -17,9 +17,9 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (session) {
-    navigate({ to: "/admin" });
-  }
+  useEffect(() => {
+    if (session) navigate({ to: "/admin" });
+  }, [session, navigate]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
