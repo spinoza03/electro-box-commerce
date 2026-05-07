@@ -1,13 +1,8 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-declare global {
-  interface Window {
-    fbq?: (...args: unknown[]) => void;
-    ttq?: { load: (id: string) => void; page: () => void; track: (event: string, data?: unknown) => void };
-    dataLayer?: unknown[];
-  }
-}
+import "@/types/pixels";
+
 
 export function PixelInjector() {
   useEffect(() => {
