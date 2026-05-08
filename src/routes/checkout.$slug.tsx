@@ -76,7 +76,7 @@ function CheckoutPage() {
       w.fbq?.("track", "Purchase", { value: total, currency: "MAD" });
       w.ttq?.track?.("CompletePayment", { value: total, currency: "MAD" });
     }
-    setTimeout(() => navigate({ to: "/" }), 1500);
+    setTimeout(() => navigate({ to: "/thank-you" }), 1500);
   }
 
   return (

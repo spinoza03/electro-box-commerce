@@ -36,11 +36,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex bg-muted/30">
       <aside className="hidden md:flex flex-col w-60 bg-[var(--navy-deep)] text-white">
-        <Link to="/admin" className="flex items-center gap-2 font-bold p-5 border-b border-white/10">
-          <span className="inline-flex items-center justify-center h-8 w-8 rounded" style={{ backgroundImage: "var(--gradient-bolt)" }}>
-            <Zap className="h-4 w-4 text-[var(--navy-deep)]" />
-          </span>
-          EBE Admin
+        <Link to="/admin" className="flex items-center justify-center p-5 border-b border-white/10">
+          <img src="/logo.png" alt="EBE Admin" className="h-8 w-auto" />
         </Link>
         <nav className="flex-1 p-3 space-y-1">
           {links.map(({ to, label, Icon }) => {

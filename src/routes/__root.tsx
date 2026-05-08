@@ -73,19 +73,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Electro Box Edge — Électronique haute performance" },
+      { name: "description", content: "Boutique d'électronique nouvelle génération au Maroc. Paiement à la livraison, expédition rapide." },
+      { name: "author", content: "Electro Box Edge" },
+      { property: "og:title", content: "Electro Box Edge" },
+      { property: "og:description", content: "Électronique haute performance avec paiement à la livraison au Maroc." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "icon",
+        href: "/favicon.png",
+        type: "image/png",
       },
     ],
   }),
@@ -99,6 +103,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
         <HeadContent />
       </head>
       <body>

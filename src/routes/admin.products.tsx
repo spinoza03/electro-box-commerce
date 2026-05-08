@@ -1,10 +1,88 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, lazy, Suspense, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell } from "@/components/AdminShell";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Image as ImageIcon, Eye, Code as CodeIcon } from "lucide-react";
+import { ImageUpload } from "@/components/ImageUpload";
+import { HtmlContent } from "@/components/HtmlContent";
+// ... (existing code)
+import Editor from 'react-simple-wysiwyg';
+
+
+
+function RichHtmlEditor({ label, value, onChange, isRtl }: { label: string; value: string; onChange: (v: string) => void; isRtl?: boolean }) {
+  const [view, setView] = useState<"code" | "preview">("code");
+  const [savedRange, setSavedRange] = useState<Range | null>(null);
+
+  const handleSaveSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      setSavedRange(sel.getRangeAt(0));
+    }
+  };
+
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium">{label}</label>
+        <div className="flex items-center gap-2">
+          <div className="flex border rounded-lg overflow-hidden h-8">
+            <button
+              onClick={() => setView("code")}
+              className={`px-3 flex items-center gap-1.5 text-xs font-semibold transition-colors ${view === "code" ? "bg-[var(--navy-deep)] text-white" : "bg-muted/50 hover:bg-muted text-muted-foreground"}`}
+            >
+              <CodeIcon className="h-3 w-3" /> Code
+            </button>
+            <button
+              onClick={() => setView("preview")}
+              className={`px-3 flex items-center gap-1.5 text-xs font-semibold transition-colors ${view === "preview" ? "bg-[var(--navy-deep)] text-white" : "bg-muted/50 hover:bg-muted text-muted-foreground"}`}
+            >
+              <Eye className="h-3 w-3" /> Visuel
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {view === "code" ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={14}
+          className={`w-full border rounded-lg px-3 py-2 bg-background font-mono text-xs focus:ring-2 focus:ring-[var(--cyan-bright)] outline-none transition-all ${isRtl ? "text-right" : ""}`}
+          placeholder="<h1>Titre</h1><p>Description...</p>"
+          dir={isRtl ? "rtl" : "ltr"}
+        />
+      ) : (
+        <div className={`relative w-full border rounded-lg overflow-hidden bg-white ${isRtl ? "text-right" : ""}`} dir={isRtl ? "rtl" : "ltr"}>
+          <style dangerouslySetInnerHTML={{__html: `
+            .rsw-editor { min-height: 250px; border: none !important; }
+            .rsw-toolbar { border-top: none !important; border-left: none !important; border-right: none !important; background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding-right: 48px !important; }
+          `}} />
+          <div className="absolute top-1 right-2 z-10" title="Insérer une image" onMouseDown={handleSaveSelection}>
+            <ImageUpload 
+              label="" 
+              onUpload={(url) => {
+                if (savedRange) {
+                  const sel = window.getSelection();
+                  sel?.removeAllRanges();
+                  sel?.addRange(savedRange);
+                }
+                document.execCommand('insertImage', false, url);
+              }} 
+            />
+          </div>
+          <Editor 
+            value={value} 
+            onChange={(e: any) => onChange(e.target.value)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/admin/products")({
   component: () => <AdminShell><ProductsPage /></AdminShell>,
@@ -50,7 +128,12 @@ function ProductsPage() {
     else { toast.success("Supprimé"); qc.invalidateQueries({ queryKey: ["admin-products"] }); }
   }
 
+  if (editing) {
+    return <ProductDialog product={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); qc.invalidateQueries({ queryKey: ["admin-products"] }); }} />;
+  }
+
   return (
+
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Produits</h1>
@@ -96,7 +179,6 @@ function ProductsPage() {
         </table>
       </div>
 
-      {editing && <ProductDialog product={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); qc.invalidateQueries({ queryKey: ["admin-products"] }); }} />}
     </div>
   );
 }
@@ -112,21 +194,38 @@ function ProductDialog({ product, onClose, onSaved }: { product: Product; onClos
     if (!p.name || !p.slug) { toast.error("Nom et slug requis"); return; }
     setSaving(true);
     const payload = { ...p, images: imgs.split("\n").map((s) => s.trim()).filter(Boolean), price: Number(p.price), stock_count: Number(p.stock_count), compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : null };
-    const { error } = p.id
-      ? await supabase.from("products").update(payload).eq("id", p.id)
-      : await supabase.from("products").insert(payload);
+    const { data, error } = p.id
+      ? await supabase.from("products").update(payload).eq("id", p.id).select().single()
+      : await supabase.from("products").insert(payload).select().single();
     setSaving(false);
-    if (error) toast.error(error.message);
-    else { toast.success("Enregistré"); onSaved(); }
+    if (error) { toast.error(error.message); }
+    else { 
+      toast.success("Enregistré avec succès !"); 
+      if (!p.id && data) update("id", data.id);
+      qc.invalidateQueries({ queryKey: ["admin-products"] }); 
+    }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-card rounded-xl shadow-2xl max-w-3xl w-full my-8 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-card border-b p-4 flex items-center justify-between">
-          <h2 className="font-bold">{p.id ? "Modifier" : "Nouveau"} produit</h2>
-          <button onClick={onClose}><X className="h-5 w-5" /></button>
+    <div className="flex flex-col h-full bg-background relative">
+      <div className="sticky top-0 z-20 flex items-center justify-between mb-4 pb-4 pt-2 bg-background/95 backdrop-blur border-b">
+        <div>
+          <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground mb-1 flex items-center gap-1">
+            &larr; Retour aux produits
+          </button>
+          <h2 className="text-2xl font-bold text-[var(--navy-deep)]">{p.id ? "Modifier le" : "Nouveau"} produit</h2>
         </div>
+        <div className="flex gap-2 items-center">
+          {p.id && (
+            <a href={`/p/${p.slug}`} target="_blank" rel="noreferrer" className="px-4 py-2 rounded-md text-sm font-medium text-[var(--navy-deep)] hover:bg-muted flex items-center gap-2">
+              <Eye className="h-4 w-4" /> Voir en boutique
+            </a>
+          )}
+          <button onClick={save} disabled={saving} className="btn-bolt px-6 py-2.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all">{saving ? "Enregistrement..." : "Enregistrer"}</button>
+        </div>
+      </div>
+      
+      <div className="bg-card border rounded-xl p-6 shadow-sm flex-1 overflow-y-auto">
         <div className="p-4 grid md:grid-cols-2 gap-4">
           <Field label="Nom (FR)" value={p.name} onChange={(v) => { update("name", v); if (!p.id) update("slug", slugify(v)); }} />
           <Field label="Nom (AR)" value={p.name_ar || ""} onChange={(v) => update("name_ar", v)} />
@@ -139,24 +238,33 @@ function ProductDialog({ product, onClose, onSaved }: { product: Product; onClos
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.is_active} onChange={(e) => update("is_active", e.target.checked)} /> Actif</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.is_featured} onChange={(e) => update("is_featured", e.target.checked)} /> Vedette</label>
           </div>
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium">Images (URLs, une par ligne)</label>
-            <textarea value={imgs} onChange={(e) => setImgs(e.target.value)} rows={3} className="mt-1 w-full border rounded-md px-3 py-2 bg-background font-mono text-xs" />
+          <div className="md:col-span-2 space-y-3">
+            <ImageUpload 
+              label="Ajouter une image au produit" 
+              onUpload={(url) => setImgs(prev => prev ? `${prev}\n${url}` : url)} 
+            />
+            <div>
+              <label className="text-sm font-medium">URLs des images (une par ligne)</label>
+              <textarea value={imgs} onChange={(e) => setImgs(e.target.value)} rows={3} className="mt-1 w-full border rounded-md px-3 py-2 bg-background font-mono text-xs" />
+            </div>
           </div>
           <Field label="Description courte (FR)" value={p.short_description || ""} onChange={(v) => update("short_description", v)} textarea />
           <Field label="Description courte (AR)" value={p.short_description_ar || ""} onChange={(v) => update("short_description_ar", v)} textarea />
           <div className="md:col-span-2">
-            <label className="text-sm font-medium">Description HTML (FR) — supports h1, h2, ul, img, etc.</label>
-            <textarea value={p.html_description || ""} onChange={(e) => update("html_description", e.target.value)} rows={6} className="mt-1 w-full border rounded-md px-3 py-2 bg-background font-mono text-xs" placeholder="<h2>Caractéristiques</h2>..." />
+            <RichHtmlEditor 
+              label="Description HTML (FR)" 
+              value={p.html_description || ""} 
+              onChange={(v) => update("html_description", v)} 
+            />
           </div>
           <div className="md:col-span-2">
-            <label className="text-sm font-medium">Description HTML (AR)</label>
-            <textarea value={p.html_description_ar || ""} onChange={(e) => update("html_description_ar", e.target.value)} rows={6} className="mt-1 w-full border rounded-md px-3 py-2 bg-background font-mono text-xs" dir="rtl" />
+            <RichHtmlEditor 
+              label="Description HTML (AR)" 
+              value={p.html_description_ar || ""} 
+              onChange={(v) => update("html_description_ar", v)} 
+              isRtl
+            />
           </div>
-        </div>
-        <div className="sticky bottom-0 bg-card border-t p-4 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded border">Annuler</button>
-          <button onClick={save} disabled={saving} className="btn-bolt px-5 py-2 rounded">{saving ? "…" : "Enregistrer"}</button>
         </div>
       </div>
     </div>
