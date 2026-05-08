@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, lazy, Suspense, useEffect } from "react";
+import { useState, lazy, Suspense, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell } from "@/components/AdminShell";
@@ -15,6 +15,7 @@ import Editor from 'react-simple-wysiwyg';
 function RichHtmlEditor({ label, value, onChange, isRtl }: { label: string; value: string; onChange: (v: string) => void; isRtl?: boolean }) {
   const [view, setView] = useState<"code" | "preview">("code");
   const [savedRange, setSavedRange] = useState<Range | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const handleSaveSelection = () => {
     const sel = window.getSelection();
@@ -25,7 +26,7 @@ function RichHtmlEditor({ label, value, onChange, isRtl }: { label: string; valu
 
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" ref={wrapperRef}>
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium">{label}</label>
         <div className="flex items-center gap-2">
@@ -64,6 +65,7 @@ function RichHtmlEditor({ label, value, onChange, isRtl }: { label: string; valu
           <div className="absolute top-1 right-2 z-10" title="Insérer une image" onMouseDown={handleSaveSelection}>
             <ImageUpload 
               label="" 
+              compact
               onUpload={(url) => {
                 if (savedRange) {
                   const sel = window.getSelection();
@@ -71,6 +73,10 @@ function RichHtmlEditor({ label, value, onChange, isRtl }: { label: string; valu
                   sel?.addRange(savedRange);
                 }
                 document.execCommand('insertImage', false, url);
+                const editorNode = wrapperRef.current?.querySelector('.rsw-editor');
+                if (editorNode) {
+                  onChange(editorNode.innerHTML);
+                }
               }} 
             />
           </div>
