@@ -236,7 +236,7 @@ function ProductDialog({ product, onClose, onSaved }: { product: Product; onClos
           <Field label="Nom (FR)" value={p.name} onChange={(v) => { update("name", v); if (!p.id) update("slug", slugify(v)); }} />
           <Field label="Nom (AR)" value={p.name_ar || ""} onChange={(v) => update("name_ar", v)} />
           <Field label="Slug (URL)" value={p.slug} onChange={(v) => update("slug", slugify(v))} />
-          <Field label="Catégorie" value={p.category || ""} onChange={(v) => update("category", v)} />
+          <CategorySelect value={p.category || ""} onChange={(v) => update("category", v)} />
           <Field label="Prix (MAD)" type="number" value={String(p.price)} onChange={(v) => update("price", Number(v))} />
           <Field label="Prix barré" type="number" value={p.compare_at_price ? String(p.compare_at_price) : ""} onChange={(v) => update("compare_at_price", v ? Number(v) : null)} />
           <Field label="Stock" type="number" value={String(p.stock_count)} onChange={(v) => update("stock_count", Number(v))} />
@@ -292,4 +292,33 @@ function Field({ label, value, onChange, type = "text", textarea }: { label: str
 
 function slugify(s: string) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+}
+
+function CategorySelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { data: categories } = useQuery({
+    queryKey: ["admin-categories-select"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("categories")
+        .select("slug, name")
+        .order("sort_order", { ascending: true });
+      return (data || []) as { slug: string; name: string }[];
+    },
+  });
+
+  return (
+    <label className="block">
+      <span className="text-sm font-medium">Cat\u00e9gorie</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full border rounded-md px-3 py-2 bg-background"
+      >
+        <option value="">\u2014 Aucune \u2014</option>
+        {categories?.map((c) => (
+          <option key={c.slug} value={c.slug}>{c.name}</option>
+        ))}
+      </select>
+    </label>
+  );
 }

@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Zap, LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Loader2, MessageSquare } from "lucide-react";
+import { Zap, LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Loader2, MessageSquare, Tag } from "lucide-react";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { session, isAdmin, loading } = useAuth();
@@ -29,6 +29,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const links = [
     { to: "/admin", label: "Dashboard", Icon: LayoutDashboard },
     { to: "/admin/products", label: "Produits", Icon: Package },
+    { to: "/admin/categories", label: "Catégories", Icon: Tag },
     { to: "/admin/orders", label: "Commandes", Icon: ShoppingCart },
     { to: "/admin/reviews", label: "Avis", Icon: MessageSquare },
     { to: "/admin/settings", label: "Paramètres", Icon: Settings },
