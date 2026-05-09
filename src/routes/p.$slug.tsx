@@ -185,8 +185,8 @@ function ProductPage() {
             </div>
 
             {/* Price */}
-            <div className="mt-5 flex items-baseline gap-3">
-              <span className="text-3xl md:text-4xl font-extrabold text-[var(--navy-deep)]">
+            <div className="mt-5 flex items-baseline gap-3 flex-wrap">
+              <span className={`text-3xl md:text-4xl font-extrabold ${hasDiscount ? "text-red-500" : "text-[var(--navy-deep)]"}`}>
                 {Number(product.price).toFixed(0)}
                 <span className="text-lg font-bold ml-1">MAD</span>
               </span>
@@ -196,7 +196,7 @@ function ProductPage() {
                 </span>
               )}
               {hasDiscount && (
-                <span className="text-sm font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-md">
+                <span className="text-sm font-bold text-red-500 bg-red-50 border border-red-100 px-2 py-0.5 rounded-md">
                   -{discount}%
                 </span>
               )}
@@ -227,20 +227,21 @@ function ProductPage() {
               </span>
             </div>
 
-            {/* Trust badges */}
-            <div className="mt-5 flex flex-wrap gap-4 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <Truck className="h-4 w-4 text-[var(--cyan-bright)]" />{" "}
-                {lang === "ar" ? "توصيل 24-72 ساعة" : "Livraison 24-72h"}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <ShieldCheck className="h-4 w-4 text-[var(--cyan-bright)]" />{" "}
-                {lang === "ar" ? "الدفع عند الاستلام" : "Paiement à la livraison"}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <BadgeCheck className="h-4 w-4 text-[var(--cyan-bright)]" />{" "}
-                {lang === "ar" ? "جودة مضمونة" : "Qualité garantie"}
-              </span>
+            {/* 3-column trust card (matches design) */}
+            <div className="mt-6 bg-white rounded-2xl border border-border/50 shadow-[0_8px_24px_-12px_rgba(10,25,47,0.12)] p-4 grid grid-cols-3 gap-2">
+              {[
+                { Icon: ShieldCheck, title: lang === "ar" ? "الدفع" : "Paiement", sub: lang === "ar" ? "عند الاستلام" : "À la livraison" },
+                { Icon: Truck, title: lang === "ar" ? "التوصيل" : "Livraison", sub: "24-72h" },
+                { Icon: BadgeCheck, title: lang === "ar" ? "الضمان" : "Garantie", sub: lang === "ar" ? "سنة واحدة" : "1 an" },
+              ].map(({ Icon, title, sub }) => (
+                <div key={title} className="flex flex-col items-center text-center gap-1.5">
+                  <div className="h-9 w-9 rounded-full flex items-center justify-center bg-[var(--cyan-bright)]/12 text-[var(--cyan-bright)]">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="text-xs font-bold text-[var(--navy-deep)]">{title}</div>
+                  <div className="text-[10px] text-muted-foreground leading-tight">{sub}</div>
+                </div>
+              ))}
             </div>
 
             {/* CTA */}

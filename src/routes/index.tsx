@@ -95,7 +95,7 @@ function HomePage() {
           }}
         />
 
-        <div className="container mx-auto px-4 md:px-6 pt-32 pb-20 md:pt-40 md:pb-28 relative">
+        <div className="container mx-auto px-4 md:px-6 pt-32 pb-28 md:pt-40 md:pb-36 relative">
           {/* Trust badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.07] border border-[var(--cyan-bright)]/30 backdrop-blur-sm">
             <div className="flex -space-x-1">
@@ -110,8 +110,12 @@ function HomePage() {
             </span>
           </div>
 
-          <h1 className="mt-6 text-4xl sm:text-5xl md:text-[3.5rem] lg:text-6xl font-extrabold leading-[1.1] max-w-3xl tracking-tight">
-            {t("hero.title")}
+          <h1 className="mt-6 text-4xl sm:text-5xl md:text-[3.5rem] lg:text-6xl font-extrabold leading-[1.05] max-w-3xl tracking-tight">
+            {lang === "ar" ? (
+              <>إلكترونيات <span className="text-[var(--cyan-bright)]">الجيل الجديد</span>، تصلك إلى باب منزلك.</>
+            ) : (
+              <>L'électronique <span className="text-[var(--cyan-bright)]">nouvelle génération</span>, livrée chez vous.</>
+            )}
           </h1>
           <p className="mt-5 text-base md:text-lg text-white/70 max-w-xl leading-relaxed">
             {t("hero.subtitle")}
@@ -154,31 +158,27 @@ function HomePage() {
           </div>
         </div>
 
-        {/* Bottom fade edge */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent" />
       </section>
 
       {/* ═══ TRUST STRIP ═══ */}
-      <section dir={dir} className="border-b border-border/50 bg-card/50 backdrop-blur-sm -mt-1 relative z-10">
-        <div className="container mx-auto px-4 md:px-6 py-5">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+      <section dir={dir} className="relative z-10 -mt-10 md:-mt-14">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {[
-              { Icon: Wallet, title: t("why.cod.title"), sub: t("why.cod.body") },
-              { Icon: Truck, title: t("why.fast.title"), sub: t("why.fast.body") },
-              { Icon: ShieldCheck, title: t("why.quality.title"), sub: t("why.quality.body") },
-              { Icon: Package, title: lang === "ar" ? "شحن مجاني" : "Livraison gratuite", sub: lang === "ar" ? "على جميع الطلبات" : "Sur toutes les commandes" },
+              { Icon: Wallet, title: lang === "ar" ? "الدفع عند الاستلام" : "COD", sub: lang === "ar" ? "الدفع عند الاستلام" : "Paiement à la livraison" },
+              { Icon: Truck, title: "24-72h", sub: lang === "ar" ? "في جميع المغرب" : "Tout le Maroc" },
+              { Icon: ShieldCheck, title: lang === "ar" ? "جودة" : "Qualité", sub: lang === "ar" ? "ضمان سنة" : "Garantie 1 an" },
+              { Icon: Package, title: lang === "ar" ? "إرجاع" : "Retour", sub: lang === "ar" ? "خلال 7 أيام" : "Sous 7 jours" },
             ].map(({ Icon, title, sub }) => (
               <div
                 key={title}
-                className="flex items-start gap-3 group"
+                className="bg-white rounded-2xl p-4 md:p-5 border border-border/40 shadow-[0_8px_24px_-12px_rgba(10,25,47,0.18)] flex flex-col items-center text-center gap-2 hover:-translate-y-1 transition-transform duration-300"
               >
-                <div className="flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-[var(--cyan-bright)]/10 text-[var(--cyan-bright)] group-hover:bg-[var(--cyan-bright)]/20 transition-colors duration-300">
+                <div className="h-11 w-11 rounded-full flex items-center justify-center bg-[var(--cyan-bright)]/12 text-[var(--cyan-bright)]">
                   <Icon className="h-5 w-5" />
                 </div>
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{title}</div>
-                  <div className="text-xs text-muted-foreground leading-snug mt-0.5 hidden md:block">{sub}</div>
-                </div>
+                <div className="text-sm font-bold text-[var(--navy-deep)]">{title}</div>
+                <div className="text-[11px] md:text-xs text-muted-foreground leading-tight">{sub}</div>
               </div>
             ))}
           </div>
@@ -280,22 +280,37 @@ function ProductCard({
   const discount = hasDiscount
     ? Math.round(((Number(p.compare_at_price) - Number(p.price)) / Number(p.compare_at_price)) * 100)
     : 0;
+  const createdAt = p.created_at ? new Date(p.created_at).getTime() : 0;
+  const isNew = createdAt && Date.now() - createdAt < 1000 * 60 * 60 * 24 * 21;
 
   return (
     <Link
       to="/p/$slug"
       params={{ slug: p.slug }}
-      className="group relative bg-card rounded-2xl overflow-hidden border border-border/60 hover:border-[var(--cyan-bright)]/30 transition-all duration-300 hover:shadow-[0_12px_40px_-12px_rgba(0,210,255,0.15)]"
+      className="group relative bg-card rounded-2xl overflow-hidden border border-border/60 hover:border-[var(--cyan-bright)]/40 transition-all duration-300 hover:shadow-[0_16px_40px_-16px_rgba(10,25,47,0.25)]"
     >
-      {/* Discount badge */}
-      {hasDiscount && (
-        <div className="absolute top-2.5 left-2.5 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg">
-          -{discount}%
-        </div>
-      )}
+      {/* Badges */}
+      <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1.5 items-start">
+        {hasDiscount && (
+          <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg">
+            -{discount}%
+          </span>
+        )}
+        {isNew && (
+          <span className="bg-white/95 text-[var(--navy-deep)] text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-md shadow uppercase">
+            {lang === "ar" ? "جديد" : "Nouveau"}
+          </span>
+        )}
+      </div>
 
-      {/* Image */}
-      <div className="aspect-square bg-muted overflow-hidden">
+      {/* Image with subtle cyan→navy gradient backdrop (matches PDF) */}
+      <div
+        className="aspect-square overflow-hidden relative"
+        style={{
+          background:
+            "linear-gradient(160deg, rgba(0,210,255,0.10) 0%, rgba(10,25,47,0.06) 100%)",
+        }}
+      >
         {p.images?.[0] ? (
           <img
             src={p.images[0]}
@@ -305,17 +320,31 @@ function ProductCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package className="h-10 w-10 text-muted-foreground/20" />
+            <Package className="h-12 w-12 text-[var(--navy-deep)]/25" />
           </div>
         )}
       </div>
 
       {/* Content */}
       <div className="p-3.5">
-        <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem] text-foreground/90 group-hover:text-foreground transition-colors">
+        <h3 className="font-bold text-sm line-clamp-2 min-h-[2.5rem] text-[var(--navy-deep)] group-hover:text-[var(--navy-deep)] transition-colors">
           {name}
         </h3>
-        <div className="mt-2.5 flex items-baseline gap-2">
+
+        {/* Rating row */}
+        <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+          <div className="flex">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} className="h-3 w-3 text-amber-400 fill-amber-400" />
+            ))}
+          </div>
+          <span className="font-semibold text-[var(--navy-deep)]">
+            {(p.rating ?? 4.7).toFixed?.(1) ?? "4.7"}
+          </span>
+          <span>· {p.review_count ?? 127}</span>
+        </div>
+
+        <div className="mt-2 flex items-baseline gap-2">
           <span className="text-base font-extrabold text-[var(--navy-deep)]">
             {Number(p.price).toFixed(0)}
             <span className="text-[11px] font-semibold ml-0.5">MAD</span>

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoreLayout } from "@/components/StoreLayout";
 import { useT } from "@/lib/i18n";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck, Check } from "lucide-react";
 
 export const Route = createFileRoute("/checkout/$slug")({
   component: CheckoutPage,
@@ -81,14 +81,37 @@ function CheckoutPage() {
 
   return (
     <StoreLayout>
-      <div dir={dir} className="container mx-auto px-4 py-8 max-w-3xl">
-        <h1 className="text-2xl md:text-3xl font-bold text-[var(--navy-deep)]">{t("checkout.title")}</h1>
-        <p className="text-muted-foreground text-sm mt-1 inline-flex items-center gap-1.5">
+      <div dir={dir} className="container mx-auto px-4 pt-24 md:pt-28 pb-12 max-w-3xl">
+        <h1 className="text-2xl md:text-3xl font-bold text-[var(--navy-deep)] text-center">{t("checkout.title")}</h1>
+        <p className="text-muted-foreground text-sm mt-1 text-center inline-flex items-center gap-1.5 justify-center w-full">
           <ShieldCheck className="h-4 w-4 text-[var(--cyan-bright)]" /> {t("checkout.subtitle")}
         </p>
 
-        <div className="mt-6 grid md:grid-cols-[1fr_320px] gap-6">
-          <form onSubmit={onSubmit} className="bg-card border rounded-xl p-5 space-y-4 shadow-[var(--shadow-soft)]">
+        {/* Step indicator */}
+        <div className="mt-6 flex items-center justify-center gap-2 text-xs md:text-sm">
+          <div className="flex items-center gap-2">
+            <span className="h-6 w-6 rounded-full bg-[var(--navy-deep)] text-white flex items-center justify-center">
+              <Check className="h-3.5 w-3.5" />
+            </span>
+            <span className="font-semibold text-[var(--navy-deep)]">{lang === "ar" ? "السلة" : "Panier"}</span>
+          </div>
+          <div className="h-px w-8 md:w-16 bg-[var(--cyan-bright)]" />
+          <div className="flex items-center gap-2">
+            <span className="h-6 w-6 rounded-full bg-[var(--cyan-bright)] text-[var(--navy-deep)] flex items-center justify-center font-bold text-[11px]">2</span>
+            <span className="font-semibold text-[var(--navy-deep)]">{lang === "ar" ? "التوصيل" : "Livraison"}</span>
+          </div>
+          <div className="h-px w-8 md:w-16 bg-border" />
+          <div className="flex items-center gap-2 opacity-50">
+            <span className="h-6 w-6 rounded-full border border-border text-muted-foreground flex items-center justify-center font-bold text-[11px]">3</span>
+            <span className="font-medium text-muted-foreground hidden sm:inline">{lang === "ar" ? "تأكيد" : "Confirmation"}</span>
+          </div>
+        </div>
+
+        <div className="mt-8 grid md:grid-cols-[1fr_320px] gap-6">
+          <form onSubmit={onSubmit} className="bg-card border border-border/40 rounded-2xl p-5 md:p-6 space-y-4 shadow-[0_8px_24px_-12px_rgba(10,25,47,0.12)]">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground -mb-1">
+              {lang === "ar" ? "معلومات التوصيل" : "Informations de livraison"}
+            </div>
             <Field label={t("checkout.name")} name="customer_name" required />
             <Field label={t("checkout.phone")} name="phone" type="tel" required inputMode="tel" />
             <Field label={t("checkout.city")} name="city" required />
@@ -98,32 +121,65 @@ function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="btn-bolt w-full flex items-center justify-center gap-2 py-3.5 rounded-md text-base disabled:opacity-60"
+              className="btn-bolt w-full flex items-center justify-center gap-2 py-4 rounded-xl text-base disabled:opacity-60"
             >
               {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
               {t("checkout.submit")}
             </button>
+            <p className="text-center text-xs text-muted-foreground inline-flex items-center justify-center gap-1.5 w-full">
+              <ShieldCheck className="h-3.5 w-3.5 text-[var(--cyan-bright)]" />
+              {lang === "ar" ? "الدفع عند الاستلام · 100% آمن" : "Paiement à la livraison · 100% sécurisé"}
+            </p>
           </form>
 
-          <aside className="bg-card border rounded-xl p-5 shadow-[var(--shadow-soft)] h-fit">
-            <div className="flex gap-3">
-              {product.images?.[0] && <img src={product.images[0]} alt={name} className="h-16 w-16 rounded object-cover" />}
-              <div>
-                <p className="font-semibold text-sm line-clamp-2">{name}</p>
-                <p className="text-xs text-muted-foreground">{Number(product.price).toFixed(2)} MAD</p>
+          <aside className="bg-card border border-border/40 rounded-2xl p-5 shadow-[0_8px_24px_-12px_rgba(10,25,47,0.12)] h-fit">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+              {lang === "ar" ? "طلبك" : "Votre commande"}
+            </div>
+            <div className="flex gap-3 items-start">
+              {product.images?.[0] && (
+                <img
+                  src={product.images[0]}
+                  alt={name}
+                  className="h-16 w-16 rounded-xl object-cover border border-border/40"
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm line-clamp-2 text-[var(--navy-deep)]">{name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{Number(product.price).toFixed(0)} MAD</p>
               </div>
             </div>
+
             <div className="mt-4">
               <label className="text-xs text-muted-foreground">{t("checkout.qty")}</label>
-              <div className="flex items-center mt-1">
-                <button type="button" onClick={() => setQty(Math.max(1, qty - 1))} className="h-9 w-9 border rounded-l">−</button>
-                <span className="h-9 px-4 border-y flex items-center min-w-[3rem] justify-center">{qty}</span>
-                <button type="button" onClick={() => setQty(Math.min(product.stock_count || 50, qty + 1))} className="h-9 w-9 border rounded-r">+</button>
+              <div className="flex items-center mt-1.5 bg-muted/40 rounded-xl p-1 w-fit">
+                <button
+                  type="button"
+                  onClick={() => setQty(Math.max(1, qty - 1))}
+                  className="h-8 w-8 rounded-lg hover:bg-white text-[var(--navy-deep)] font-bold transition-colors"
+                >−</button>
+                <span className="h-8 px-4 flex items-center min-w-[3rem] justify-center font-bold text-[var(--navy-deep)]">{qty}</span>
+                <button
+                  type="button"
+                  onClick={() => setQty(Math.min(product.stock_count || 50, qty + 1))}
+                  className="h-8 w-8 rounded-lg hover:bg-white text-[var(--navy-deep)] font-bold transition-colors"
+                >+</button>
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t flex justify-between text-base">
-              <span className="font-medium">{t("checkout.total")}</span>
-              <span className="font-extrabold text-[var(--navy-deep)]">{total.toFixed(2)} MAD</span>
+
+            <div className="mt-5 pt-4 border-t border-border/40 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{lang === "ar" ? "المجموع الفرعي" : "Sous-total"}</span>
+                <span className="font-semibold text-[var(--navy-deep)]">{total.toFixed(0)} MAD</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{lang === "ar" ? "التوصيل" : "Livraison"}</span>
+                <span className="font-bold text-emerald-600">{lang === "ar" ? "مجاني" : "Gratuite"}</span>
+              </div>
+              <div className="flex justify-between items-baseline pt-3 border-t border-border/40">
+                <span className="font-bold text-[var(--navy-deep)]">{t("checkout.total")}</span>
+                <span className="text-xl font-extrabold text-[var(--navy-deep)]">{total.toFixed(0)} <span className="text-xs">MAD</span></span>
+              </div>
             </div>
           </aside>
         </div>
@@ -135,14 +191,14 @@ function CheckoutPage() {
 function Field({ label, name, type = "text", required, textarea, inputMode }: {
   label: string; name: string; type?: string; required?: boolean; textarea?: boolean; inputMode?: "tel" | "text" | "email";
 }) {
-  const cls = "w-full border rounded-md px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-[var(--cyan-bright)]";
+  const cls = "w-full border border-border/60 rounded-xl px-3.5 py-3 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[var(--cyan-bright)] focus:border-[var(--cyan-bright)] transition-all";
   return (
     <label className="block">
-      <span className="text-sm font-medium">{label}{required && <span className="text-destructive"> *</span>}</span>
+      <span className="text-sm font-semibold text-[var(--navy-deep)]">{label}{required && <span className="text-red-500"> *</span>}</span>
       {textarea ? (
-        <textarea name={name} required={required} rows={3} className={`mt-1 ${cls}`} />
+        <textarea name={name} required={required} rows={3} className={`mt-1.5 ${cls} resize-none`} />
       ) : (
-        <input name={name} type={type} inputMode={inputMode} required={required} className={`mt-1 ${cls}`} />
+        <input name={name} type={type} inputMode={inputMode} required={required} className={`mt-1.5 ${cls}`} />
       )}
     </label>
   );
