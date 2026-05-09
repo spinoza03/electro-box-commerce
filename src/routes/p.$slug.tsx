@@ -13,6 +13,10 @@ import {
   Star,
   BadgeCheck,
   ChevronLeft,
+  MessageSquare,
+  X,
+  Loader2,
+  Check,
 } from "lucide-react";
 
 export const Route = createFileRoute("/p/$slug")({
@@ -24,7 +28,7 @@ function ProductPage() {
   const { t, lang, dir } = useT();
   const [imgIdx, setImgIdx] = useState(0);
 
-  const { data: product, isLoading } = useQuery({
+  const { data: product, isLoading, isError } = useQuery({
     queryKey: ["product", slug],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -37,6 +41,7 @@ function ProductPage() {
       if (!data) throw notFound();
       return data;
     },
+    retry: false,
   });
 
   if (isLoading) {
@@ -48,7 +53,30 @@ function ProductPage() {
       </StoreLayout>
     );
   }
-  if (!product) return null;
+  if (isError || !product) {
+    return (
+      <StoreLayout>
+        <div className="container py-32 text-center max-w-md mx-auto">
+          <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-[var(--navy-deep)] mb-2">
+            {lang === "ar" ? "المنتج غير موجود" : "Produit introuvable"}
+          </h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            {lang === "ar"
+              ? "ربما تم حذفه أو لم يعد متوفرًا."
+              : "Il a peut-être été supprimé ou n'est plus disponible."}
+          </p>
+          <Link
+            to="/"
+            className="btn-bolt inline-flex items-center gap-2 px-6 py-3 rounded-xl"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            {lang === "ar" ? "العودة للمتجر" : "Retour à la boutique"}
+          </Link>
+        </div>
+      </StoreLayout>
+    );
+  }
 
   const name =
     lang === "ar" && product.name_ar ? product.name_ar : product.name;
@@ -86,7 +114,7 @@ function ProductPage() {
 
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
           {/* ── Images ── */}
-          <div className="space-y-3">
+          <div className="space-y-3 md:sticky md:top-24 md:self-start">
             <div className="aspect-square bg-muted rounded-2xl overflow-hidden border border-border/60 relative">
               {hasDiscount && (
                 <div className="absolute top-3 left-3 z-10 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-lg">
