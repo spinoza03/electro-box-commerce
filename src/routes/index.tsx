@@ -78,16 +78,32 @@ function HomePage() {
       {/* ═══ HERO ═══ */}
       <section
         dir={dir}
-        className="relative overflow-hidden text-white"
-        style={{ backgroundImage: "var(--gradient-hero)" }}
+        className="relative overflow-hidden text-white bg-[var(--navy-deep)]"
       >
-        {/* Animated accent orbs */}
-        <div className="absolute -right-40 -top-40 w-[600px] h-[600px] rounded-full opacity-[0.08] blur-[100px] animate-pulse" style={{ background: "var(--cyan-bright)" }} />
-        <div className="absolute -left-20 bottom-0 w-[400px] h-[400px] rounded-full opacity-[0.05] blur-[80px]" style={{ background: "var(--cyan-bright)" }} />
+        {/* Animated logo background video */}
+        <video
+          src="/logo-anime.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          poster="/logo.png"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        />
+
+        {/* Dark overlay so the text stays readable on top of the video */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(10,25,47,0.78) 0%, rgba(10,25,47,0.55) 50%, rgba(10,25,47,0.85) 100%)",
+          }}
+        />
 
         {/* Subtle grid pattern */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
           style={{
             backgroundImage:
               "linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)",
