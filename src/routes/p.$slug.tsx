@@ -237,7 +237,171 @@ function ProductPage() {
             )}
           </div>
         </div>
+
+        {/* ── Reviews Section ── */}
+        <ProductReviews productId={product.id} />
       </div>
     </StoreLayout>
+  );
+}
+
+function ProductReviews({ productId }: { productId: string }) {
+  const { t, lang, dir } = useT();
+  const [showForm, setShowForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({ user_name: "", rating: 5, comment: "" });
+
+  const { data: reviews, refetch } = useQuery({
+    queryKey: ["reviews", productId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_reviews")
+        .select("*")
+        .eq("product_id", productId)
+        .eq("is_approved", true)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const avgRating = reviews?.length
+    ? (reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviews.length).toFixed(1)
+    : "5.0";
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("product_reviews").insert({
+        product_id: productId,
+        ...formData,
+        is_approved: false, // Wait for admin approval
+      });
+      if (error) throw error;
+      import("sonner").then(({ toast }) => toast.success(lang === "ar" ? "تم إرسال تقييمك بنجاح، سيظهر بعد المراجعة" : "Avis envoyé ! Il apparaîtra après validation."));
+      setShowForm(false);
+      setFormData({ user_name: "", rating: 5, comment: "" });
+    } catch (err: any) {
+      import("sonner").then(({ toast }) => toast.error(err.message));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-20 pt-12 border-t border-border/60 max-w-4xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div>
+          <h2 className="text-2xl font-bold text-[var(--navy-deep)]">
+            {lang === "ar" ? "آراء العملاء" : "Avis des clients"}
+          </h2>
+          <div className="flex items-center gap-3 mt-2">
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className={`h-4 w-4 ${i < Math.floor(Number(avgRating)) ? "text-amber-400 fill-amber-400" : "text-muted"}`} />
+              ))}
+            </div>
+            <span className="text-sm font-bold">{avgRating} / 5.0</span>
+            <span className="text-sm text-muted-foreground">({reviews?.length || 0} {lang === "ar" ? "تقييم" : "avis"})</span>
+          </div>
+        </div>
+        {!showForm && (
+          <button 
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-2 bg-white border-2 border-[var(--navy-deep)] text-[var(--navy-deep)] px-6 py-3 rounded-xl font-bold hover:bg-[var(--navy-deep)] hover:text-white transition-all"
+          >
+            <MessageSquare className="h-4 w-4" /> {lang === "ar" ? "أضف تقييمك" : "Écrire un avis"}
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-muted/30 p-6 md:p-8 rounded-2xl border border-border/40 mb-12 animate-in slide-in-from-top-4 duration-300">
+          <div className="flex justify-between items-start mb-6">
+            <h3 className="font-bold text-lg">{lang === "ar" ? "اترك تقييمك" : "Donnez votre avis"}</h3>
+            <button type="button" onClick={() => setShowForm(false)} className="text-muted-foreground"><X className="h-5 w-5" /></button>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1.5">{lang === "ar" ? "الاسم الكامل" : "Nom complet"}</label>
+                <input 
+                  required
+                  className="w-full bg-white border rounded-xl px-4 py-3 text-sm focus:ring-2 ring-[var(--cyan-bright)] outline-none"
+                  value={formData.user_name}
+                  onChange={e => setFormData({...formData, user_name: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">{lang === "ar" ? "التقييم" : "Note"}</label>
+                <div className="flex gap-2">
+                  {[1,2,3,4,5].map(n => (
+                    <button 
+                      key={n}
+                      type="button"
+                      onClick={() => setFormData({...formData, rating: n})}
+                      className={`p-1 transition-transform active:scale-90 ${formData.rating >= n ? "text-amber-400" : "text-muted/50"}`}
+                    >
+                      <Star className={`h-7 w-7 ${formData.rating >= n ? "fill-current" : ""}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">{lang === "ar" ? "تعليقك" : "Votre commentaire"}</label>
+              <textarea 
+                required
+                rows={4}
+                className="w-full bg-white border rounded-xl px-4 py-3 text-sm focus:ring-2 ring-[var(--cyan-bright)] outline-none resize-none"
+                value={formData.comment}
+                onChange={e => setFormData({...formData, comment: e.target.value})}
+              />
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button 
+              disabled={submitting}
+              className="btn-bolt px-8 py-3 rounded-xl flex items-center gap-2 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
+              {lang === "ar" ? "إرسال التقييم" : "Envoyer l'avis"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="grid gap-6">
+        {reviews?.map((review: any) => (
+          <div key={review.id} className="bg-white p-6 rounded-2xl border border-border/40 shadow-sm">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <div className="font-bold text-[var(--navy-deep)]">{review.user_name}</div>
+                <div className="flex gap-0.5 mt-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={`h-3 w-3 ${i < review.rating ? "text-amber-400 fill-amber-400" : "text-muted/30"}`} />
+                  ))}
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {new Date(review.created_at).toLocaleDateString(lang === "ar" ? "ar-MA" : "fr-FR")}
+              </div>
+            </div>
+            <p className="text-muted-foreground text-sm leading-relaxed italic">
+              "{review.comment}"
+            </p>
+          </div>
+        ))}
+        {reviews?.length === 0 && !showForm && (
+          <div className="text-center py-10 bg-muted/20 rounded-2xl border border-dashed border-border/60">
+            <MessageSquare className="h-10 w-10 text-muted/30 mx-auto mb-3" />
+            <p className="text-muted-foreground italic">
+              {lang === "ar" ? "لا توجد تعليقات بعد. كن أول من يترك رأيه!" : "Aucun avis pour le moment. Soyez le premier à donner votre avis !"}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

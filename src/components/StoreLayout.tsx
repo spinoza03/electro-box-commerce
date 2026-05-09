@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useT, useLangStore, HtmlLangSync } from "@/lib/i18n";
 import { PixelInjector } from "./PixelInjector";
-import { Zap, Globe, Menu, X, ChevronRight } from "lucide-react";
+import { Zap, Globe, Menu, X, ChevronRight, Facebook, Instagram, Phone, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export function StoreLayout({ children }: { children: React.ReactNode }) {
@@ -152,12 +152,32 @@ export function StoreLayout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 md:px-6 py-10">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             {/* Footer Logo */}
-            <div className="flex items-center">
+            <div className="flex flex-col items-center md:items-start gap-4">
               <img src="/logo.png" alt="Electro Box Edge" className="h-8 w-auto opacity-80" />
+              <div className="flex items-center gap-4">
+                <a href="https://www.facebook.com/share/18afZVodp6/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                  <Facebook className="h-5 w-5" />
+                </a>
+                <a href="https://www.instagram.com/electro_box_edge?igsh=MWhuNmF0dzQ5ZThnYw==" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                  <Instagram className="h-5 w-5" />
+                </a>
+              </div>
+            </div>
+
+            {/* Contact Info */}
+            <div className="flex flex-col items-center md:items-start gap-2 text-sm">
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-[var(--cyan-bright)]" />
+                <span>0664 299 799</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-[var(--cyan-bright)]" />
+                <a href="mailto:Contact@electroboxedge.com" className="hover:text-white transition-colors">Contact@electroboxedge.com</a>
+              </div>
             </div>
 
             {/* Footer Links */}
-            <div className="flex items-center gap-6 text-sm">
+            <div className="flex flex-col items-center md:items-end gap-2 text-sm">
               <Link to="/privacy" className="hover:text-white transition-colors duration-200">
                 {t("nav.privacy")}
               </Link>
@@ -172,6 +192,32 @@ export function StoreLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </footer>
+
+      {/* Sticky WhatsApp Button */}
+      <a
+        href="https://wa.me/212664299799"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-[60] bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:scale-110 transition-transform duration-300 flex items-center justify-center group"
+        aria-label="WhatsApp"
+      >
+        <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 ease-in-out whitespace-nowrap text-sm font-bold">
+          <span className="px-2">WhatsApp</span>
+        </span>
+        <svg
+          viewBox="0 0 24 24"
+          width="24"
+          height="24"
+          stroke="currentColor"
+          strokeWidth="2"
+          fill="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-6 w-6"
+        >
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L22 4z"></path>
+        </svg>
+      </a>
     </div>
   );
 }
