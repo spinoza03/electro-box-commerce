@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StoreLayout } from "@/components/StoreLayout";
 import { useT } from "@/lib/i18n";
@@ -14,7 +15,29 @@ import {
   Package,
   Clock,
   BadgeCheck,
+  LayoutGrid,
+  Headphones,
+  Watch,
+  Home as HomeIcon,
+  Bike,
+  Camera,
+  Tag as TagIcon,
 } from "lucide-react";
+
+// Maps a category slug to a Lucide icon. Falls back to Tag.
+const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  audio: Headphones,
+  montres: Watch,
+  maison: HomeIcon,
+  mobilite: Bike,
+  photo: Camera,
+};
+function iconForCategory(slug?: string | null) {
+  if (!slug) return TagIcon;
+  return CATEGORY_ICONS[slug.toLowerCase()] ?? TagIcon;
+}
+
+type Category = { id: string; slug: string; name: string; name_ar?: string | null; icon?: string | null };
 
 export const Route = createFileRoute("/")(  {
   head: () => ({
@@ -41,6 +64,20 @@ export const Route = createFileRoute("/")(  {
 
 function HomePage() {
   const { t, lang, dir } = useT();
+  const [selectedCat, setSelectedCat] = useState<string>("");
+
+  // Categories
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("categories")
+        .select("id, slug, name, name_ar, icon")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      return (data || []) as Category[];
+    },
+  });
 
   // Featured products
   const { data: featured } = useQuery({
@@ -72,6 +109,10 @@ function HomePage() {
   });
 
   const hasFeatured = featured && featured.length > 0;
+
+  const filteredProducts = selectedCat
+    ? (allProducts ?? []).filter((p: any) => (p.category || "").toLowerCase() === selectedCat)
+    : (allProducts ?? []);
 
   return (
     <StoreLayout>
@@ -201,8 +242,57 @@ function HomePage() {
         </div>
       </section>
 
+      {/* ═══ CATEGORIES ═══ */}
+      {categories && categories.length > 0 && (
+        <section dir={dir} className="container mx-auto px-4 md:px-6 pt-12 md:pt-16">
+          <div className="flex items-end justify-between mb-5">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-[var(--cyan-bright)]">
+                {lang === "ar" ? "الفئات" : "Catégories"}
+              </span>
+              <h2 className="text-2xl md:text-3xl font-bold mt-1 tracking-tight text-[var(--navy-deep)]">
+                {lang === "ar" ? "استكشف" : "Explorer"}
+              </h2>
+            </div>
+            {selectedCat && (
+              <button
+                onClick={() => setSelectedCat("")}
+                className="text-xs md:text-sm font-medium text-muted-foreground hover:text-[var(--navy-deep)] underline"
+              >
+                {lang === "ar" ? "إعادة تعيين" : "Réinitialiser"}
+              </button>
+            )}
+          </div>
+
+          {/* Horizontal scroll on mobile, wrap on desktop */}
+          <div className="flex gap-3 overflow-x-auto md:flex-wrap md:overflow-visible pb-3 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-thin">
+            {/* "Tout" pill */}
+            <CategoryPill
+              icon={LayoutGrid}
+              label={lang === "ar" ? "الكل" : "Tout"}
+              active={selectedCat === ""}
+              onClick={() => setSelectedCat("")}
+            />
+            {categories.map((c) => (
+              <CategoryPill
+                key={c.id}
+                icon={iconForCategory(c.slug)}
+                label={lang === "ar" && c.name_ar ? c.name_ar : c.name}
+                active={selectedCat === c.slug}
+                onClick={() => {
+                  setSelectedCat(c.slug);
+                  if (typeof document !== "undefined") {
+                    document.getElementById("products")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ═══ FEATURED PRODUCTS ═══ */}
-      {hasFeatured && (
+      {hasFeatured && !selectedCat && (
         <section dir={dir} className="container mx-auto px-4 md:px-6 pt-14 pb-4">
           <div className="flex items-end justify-between mb-8">
             <div>
@@ -230,27 +320,45 @@ function HomePage() {
 
       {/* ═══ ALL PRODUCTS ═══ */}
       <section id="products" dir={dir} className="container mx-auto px-4 md:px-6 pt-14 pb-16">
-        <div className="flex items-end justify-between mb-8">
+        <div className="flex items-end justify-between mb-8 gap-4 flex-wrap">
           <div>
             <span className="text-xs font-semibold uppercase tracking-widest text-[var(--cyan-bright)]">
               🛒 {lang === "ar" ? "تسوق الآن" : "Boutique"}
             </span>
             <h2 className="text-2xl md:text-3xl font-bold mt-1 tracking-tight">
-              {t("nav.products")}
+              {selectedCat
+                ? (categories?.find((c) => c.slug === selectedCat) &&
+                    (lang === "ar"
+                      ? (categories.find((c) => c.slug === selectedCat)!.name_ar || categories.find((c) => c.slug === selectedCat)!.name)
+                      : categories.find((c) => c.slug === selectedCat)!.name))
+                : t("nav.products")}
             </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              {filteredProducts.length} {lang === "ar" ? "منتج" : "produits"}
+            </p>
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
-          {allProducts?.map((p) => (
+          {filteredProducts.map((p: any) => (
             <ProductCard key={p.id} product={p} lang={lang} t={t} />
           ))}
         </div>
-        {allProducts?.length === 0 && (
+        {filteredProducts.length === 0 && (
           <div className="text-center py-20">
             <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-muted-foreground text-sm">
-              {lang === "ar" ? "لا توجد منتجات حاليًا" : "Aucun produit pour le moment"}
+              {selectedCat
+                ? (lang === "ar" ? "لا توجد منتجات في هذه الفئة" : "Aucun produit dans cette catégorie")
+                : (lang === "ar" ? "لا توجد منتجات حاليًا" : "Aucun produit pour le moment")}
             </p>
+            {selectedCat && (
+              <button
+                onClick={() => setSelectedCat("")}
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--cyan-bright)] hover:underline"
+              >
+                {lang === "ar" ? "عرض كل المنتجات" : "Voir tous les produits"} <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         )}
       </section>
@@ -381,5 +489,40 @@ function ProductCard({
         </div>
       </div>
     </Link>
+  );
+}
+
+/* ── Category Pill (matches PDF screen 01) ── */
+function CategoryPill({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-shrink-0 flex flex-col items-center justify-center gap-2 w-[88px] md:w-[104px] h-[88px] md:h-[104px] rounded-2xl border transition-all duration-300 group ${
+        active
+          ? "bg-[var(--navy-deep)] border-[var(--navy-deep)] text-white shadow-[0_12px_28px_-12px_rgba(10,25,47,0.45)]"
+          : "bg-white border-border/50 text-[var(--navy-deep)] hover:border-[var(--cyan-bright)]/50 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-16px_rgba(10,25,47,0.25)]"
+      }`}
+    >
+      <div
+        className={`h-10 w-10 rounded-full flex items-center justify-center transition-colors ${
+          active
+            ? "bg-[var(--cyan-bright)]/20 text-[var(--cyan-bright)]"
+            : "bg-[var(--cyan-bright)]/12 text-[var(--cyan-bright)] group-hover:bg-[var(--cyan-bright)]/20"
+        }`}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+      <span className="text-xs font-bold tracking-tight max-w-full px-2 truncate">{label}</span>
+    </button>
   );
 }
