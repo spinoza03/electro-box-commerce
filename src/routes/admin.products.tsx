@@ -73,7 +73,8 @@ function RichHtmlEditor({ label, value, onChange, isRtl }: { label: string; valu
                   sel?.addRange(savedRange);
                 }
                 document.execCommand('insertImage', false, url);
-                const editorNode = wrapperRef.current?.querySelector('.rsw-editor');
+                // The editable area is .rsw-ce — NOT .rsw-editor (which wraps the toolbar too).
+                const editorNode = wrapperRef.current?.querySelector('.rsw-ce');
                 if (editorNode) {
                   onChange(editorNode.innerHTML);
                 }
