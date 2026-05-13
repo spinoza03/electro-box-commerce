@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StoreLayout } from "@/components/StoreLayout";
 import { useT } from "@/lib/i18n";
+import { trackViewLandingPage } from "@/lib/pixel";
 import {
   Zap,
   Truck,
@@ -65,6 +66,12 @@ export const Route = createFileRoute("/")(  {
 function HomePage() {
   const { t, lang, dir } = useT();
   const [selectedCat, setSelectedCat] = useState<string>("");
+
+  useEffect(() => {
+    // Wait a tick so the pixel script has a chance to inject before we fire.
+    const id = setTimeout(() => trackViewLandingPage(), 800);
+    return () => clearTimeout(id);
+  }, []);
 
   // Categories
   const { data: categories } = useQuery({

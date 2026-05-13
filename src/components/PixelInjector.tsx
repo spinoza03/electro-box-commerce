@@ -1,7 +1,11 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-
+// Lightweight cache for the conversion event setting (Purchase | Lead).
+let cachedConversionEvent: "Purchase" | "Lead" | null = null;
+export function getConversionEvent(): "Purchase" | "Lead" {
+  return cachedConversionEvent || "Purchase";
+}
 
 export function PixelInjector() {
   useEffect(() => {
@@ -10,13 +14,14 @@ export function PixelInjector() {
     supabase
       .from("settings")
       .select("key,value")
-      .in("key", ["meta_pixel_id", "tiktok_pixel_id", "google_id"])
+      .in("key", ["meta_pixel_id", "tiktok_pixel_id", "google_id", "pixel_conversion_event"])
       .then(({ data }) => {
         if (cancelled || !data) return;
         const map = Object.fromEntries(data.map((r) => [r.key, r.value || ""]));
         if (map.meta_pixel_id) injectMeta(map.meta_pixel_id);
         if (map.tiktok_pixel_id) injectTiktok(map.tiktok_pixel_id);
         if (map.google_id) injectGoogle(map.google_id);
+        cachedConversionEvent = map.pixel_conversion_event === "Lead" ? "Lead" : "Purchase";
       });
     return () => {
       cancelled = true;

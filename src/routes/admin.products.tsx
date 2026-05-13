@@ -95,6 +95,7 @@ export const Route = createFileRoute("/admin/products")({
   component: () => <AdminShell><ProductsPage /></AdminShell>,
 });
 
+type Variant = { name: string; name_ar?: string; options: string[] };
 type Product = {
   id?: string;
   name: string;
@@ -111,10 +112,12 @@ type Product = {
   images: string[];
   is_active: boolean;
   is_featured: boolean;
+  has_variants?: boolean;
+  variants?: Variant[];
 };
 
 const empty: Product = {
-  name: "", slug: "", price: 0, stock_count: 0, images: [], is_active: true, is_featured: false,
+  name: "", slug: "", price: 0, stock_count: 0, images: [], is_active: true, is_featured: false, has_variants: false, variants: [],
 };
 
 function ProductsPage() {
@@ -191,25 +194,39 @@ function ProductsPage() {
 }
 
 function ProductDialog({ product, onClose, onSaved }: { product: Product; onClose: () => void; onSaved: () => void }) {
-  const [p, setP] = useState<Product>(product);
+  const qc = useQueryClient();
+  const [p, setP] = useState<Product>({ ...product, variants: product.variants || [], has_variants: !!product.has_variants });
   const [imgs, setImgs] = useState((product.images || []).join("\n"));
   const [saving, setSaving] = useState(false);
+  void onSaved; // saving stays inline; the parent re-fetches on next open
 
   function update<K extends keyof Product>(k: K, v: Product[K]) { setP((x) => ({ ...x, [k]: v })); }
 
   async function save() {
     if (!p.name || !p.slug) { toast.error("Nom et slug requis"); return; }
+    if (p.has_variants) {
+      const bad = (p.variants || []).find((v) => !v.name.trim() || !v.options.length);
+      if (bad) { toast.error("Chaque variante doit avoir un nom et au moins une option"); return; }
+    }
     setSaving(true);
-    const payload = { ...p, images: imgs.split("\n").map((s) => s.trim()).filter(Boolean), price: Number(p.price), stock_count: Number(p.stock_count), compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : null };
+    const payload: any = {
+      ...p,
+      images: imgs.split("\n").map((s) => s.trim()).filter(Boolean),
+      price: Number(p.price),
+      stock_count: Number(p.stock_count),
+      compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : null,
+      has_variants: !!p.has_variants,
+      variants: p.has_variants ? (p.variants || []) : [],
+    };
     const { data, error } = p.id
       ? await supabase.from("products").update(payload).eq("id", p.id).select().single()
       : await supabase.from("products").insert(payload).select().single();
     setSaving(false);
     if (error) { toast.error(error.message); }
-    else { 
-      toast.success("Enregistré avec succès !"); 
+    else {
+      toast.success("Enregistré avec succès !");
       if (!p.id && data) update("id", data.id);
-      qc.invalidateQueries({ queryKey: ["admin-products"] }); 
+      qc.invalidateQueries({ queryKey: ["admin-products"] });
     }
   }
 
@@ -265,15 +282,92 @@ function ProductDialog({ product, onClose, onSaved }: { product: Product; onClos
             />
           </div>
           <div className="md:col-span-2">
-            <RichHtmlEditor 
-              label="Description HTML (AR)" 
-              value={p.html_description_ar || ""} 
-              onChange={(v) => update("html_description_ar", v)} 
+            <RichHtmlEditor
+              label="Description HTML (AR)"
+              value={p.html_description_ar || ""}
+              onChange={(v) => update("html_description_ar", v)}
               isRtl
             />
           </div>
+
+          <div className="md:col-span-2 border-t pt-6 mt-2">
+            <label className="flex items-center gap-2 text-sm font-bold mb-3">
+              <input
+                type="checkbox"
+                checked={!!p.has_variants}
+                onChange={(e) => update("has_variants", e.target.checked)}
+              />
+              Ce produit a des variantes (taille, couleur, etc.)
+            </label>
+            {p.has_variants && (
+              <VariantsEditor
+                variants={p.variants || []}
+                onChange={(v) => update("variants", v)}
+              />
+            )}
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function VariantsEditor({ variants, onChange }: { variants: Variant[]; onChange: (v: Variant[]) => void }) {
+  function updateAt(i: number, patch: Partial<Variant>) {
+    onChange(variants.map((v, idx) => idx === i ? { ...v, ...patch } : v));
+  }
+  function add() {
+    onChange([...variants, { name: "", name_ar: "", options: [] }]);
+  }
+  function remove(i: number) {
+    onChange(variants.filter((_, idx) => idx !== i));
+  }
+  return (
+    <div className="space-y-4">
+      {variants.map((v, i) => (
+        <div key={i} className="border rounded-lg p-4 bg-muted/20 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Variante #{i + 1}</span>
+            <button type="button" onClick={() => remove(i)} className="text-red-500 hover:text-red-700 text-sm flex items-center gap-1">
+              <Trash2 className="h-3.5 w-3.5" /> Supprimer
+            </button>
+          </div>
+          <div className="grid md:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-xs font-medium">Nom (FR) — ex: Couleur</span>
+              <input
+                value={v.name}
+                onChange={(e) => updateAt(i, { name: e.target.value })}
+                className="mt-1 w-full border rounded-md px-3 py-2 bg-background text-sm"
+                placeholder="Couleur"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium">Nom (AR)</span>
+              <input
+                value={v.name_ar || ""}
+                onChange={(e) => updateAt(i, { name_ar: e.target.value })}
+                className="mt-1 w-full border rounded-md px-3 py-2 bg-background text-sm"
+                placeholder="اللون"
+                dir="rtl"
+              />
+            </label>
+          </div>
+          <label className="block">
+            <span className="text-xs font-medium">Options (une par ligne) — ex: Noir, Blanc, Rouge</span>
+            <textarea
+              value={v.options.join("\n")}
+              onChange={(e) => updateAt(i, { options: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+              rows={3}
+              className="mt-1 w-full border rounded-md px-3 py-2 bg-background text-sm font-mono"
+              placeholder={"Noir\nBlanc\nRouge"}
+            />
+          </label>
+        </div>
+      ))}
+      <button type="button" onClick={add} className="w-full border-2 border-dashed border-border rounded-lg py-3 text-sm font-medium text-muted-foreground hover:border-[var(--cyan-bright)] hover:text-[var(--cyan-bright)] transition-colors inline-flex items-center justify-center gap-2">
+        <Plus className="h-4 w-4" /> Ajouter une variante
+      </button>
     </div>
   );
 }

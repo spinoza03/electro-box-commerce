@@ -53,8 +53,8 @@ interface LangState {
 
 export const useLangStore = create<LangState>()(
   persist(
-    (set) => ({ lang: "fr", setLang: (l) => set({ lang: l }) }),
-    { name: "ebe-lang" },
+    (set) => ({ lang: "ar", setLang: (l) => set({ lang: l }) }),
+    { name: "ebe-lang-v2" },
   ),
 );
 
