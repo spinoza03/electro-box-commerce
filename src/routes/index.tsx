@@ -6,8 +6,6 @@ import { StoreLayout } from "@/components/StoreLayout";
 import { useT } from "@/lib/i18n";
 import { trackViewLandingPage } from "@/lib/pixel";
 import {
-  Truck,
-  ShieldCheck,
   ArrowRight,
   Star,
   ShoppingBag,
@@ -65,9 +63,7 @@ function HomePage() {
   const [visibleCount, setVisibleCount] = useState(5);
 
   useEffect(() => {
-    // Wait a tick so the pixel script has a chance to inject before we fire.
-    const id = setTimeout(() => trackViewLandingPage(), 800);
-    return () => clearTimeout(id);
+    trackViewLandingPage();
   }, []);
 
   // Apple-style scroll-driven hero: progress 0 → 1 across the first viewport.
@@ -156,7 +152,7 @@ function HomePage() {
       <section
         ref={heroRef}
         dir={dir}
-        className="relative overflow-hidden text-white bg-[var(--navy-deep)] min-h-[70vh] flex items-center"
+        className="relative overflow-hidden text-white bg-[var(--navy-deep)] min-h-[35vh] flex items-center"
       >
         {/* Animated logo background video */}
         <video
@@ -188,7 +184,7 @@ function HomePage() {
           }}
         />
 
-        <div className="hero-content container mx-auto px-4 md:px-6 pt-28 pb-16 md:pt-32 md:pb-20 relative z-10">
+        <div className="hero-content container mx-auto px-4 md:px-6 pt-24 pb-10 md:pt-28 md:pb-12 relative z-10">
           {/* Trust badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.07] border border-[var(--cyan-bright)]/30 backdrop-blur-sm">
             <div className="flex -space-x-1">
@@ -210,30 +206,6 @@ function HomePage() {
               <>L'électronique <span className="text-[var(--cyan-bright)]">nouvelle génération</span>, livrée chez vous.</>
             )}
           </h1>
-          <p className="mt-5 text-base md:text-lg text-white/70 max-w-xl leading-relaxed">
-            {t("hero.subtitle")}
-          </p>
-
-          {/* CTA row */}
-          <div className="mt-8 flex flex-wrap items-center gap-4">
-            <a
-              href="#products"
-              className="btn-pill inline-flex items-center gap-2.5 px-7 py-3.5 text-sm"
-            >
-              {t("hero.cta")}
-              <ArrowRight className="h-4 w-4" />
-            </a>
-            <div className="flex items-center gap-3 text-white/50 text-sm">
-              <span className="inline-flex items-center gap-1.5">
-                <Truck className="h-4 w-4" /> 24-72h
-              </span>
-              <span className="w-1 h-1 rounded-full bg-white/30" />
-              <span className="inline-flex items-center gap-1.5">
-                <ShieldCheck className="h-4 w-4" /> COD
-              </span>
-            </div>
-          </div>
-
         </div>
 
       </section>

@@ -64,10 +64,7 @@ function ProductPage() {
 
   useEffect(() => {
     if (!product) return;
-    const id = setTimeout(() => {
-      trackViewContent({ id: product.id, name: product.name, value: Number(product.price), currency: "MAD" });
-    }, 700);
-    return () => clearTimeout(id);
+    trackViewContent({ id: product.id, name: product.name, value: Number(product.price), currency: "MAD" });
   }, [product]);
 
   if (isLoading) {

@@ -1,5 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useLocation } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { trackPageView } from "@/lib/pixel";
 
 // Lightweight cache for the conversion event setting (Purchase | Lead).
 let cachedConversionEvent: "Purchase" | "Lead" | null = null;
@@ -27,6 +29,19 @@ export function PixelInjector() {
       cancelled = true;
     };
   }, []);
+
+  // Fire PageView on every SPA navigation. Skip the very first run — the
+  // injected base code already fires PageView on the initial hard load.
+  const { pathname } = useLocation();
+  const firstNav = useRef(true);
+  useEffect(() => {
+    if (firstNav.current) {
+      firstNav.current = false;
+      return;
+    }
+    trackPageView();
+  }, [pathname]);
+
   return null;
 }
 

@@ -10,6 +10,7 @@ import {
 
 import appCss from "../styles.css?url";
 import { Toaster } from "sonner";
+import { PixelInjector } from "@/components/PixelInjector";
 
 function NotFoundComponent() {
   return (
@@ -122,6 +123,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <PixelInjector />
       <Outlet />
       <Toaster position="top-center" richColors />
     </QueryClientProvider>
