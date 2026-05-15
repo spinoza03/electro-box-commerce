@@ -1,0 +1,25 @@
+# Static SPA routing for Hostinger (LiteSpeed/Apache).
+# Real files are served directly; every other path falls back to the
+# prerendered SPA shell so client-side routing + refresh work.
+DirectoryIndex _shell.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve an existing file as-is.
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
+
+  # Everything else -> SPA shell (200, not redirect).
+  RewriteRule ^ /_shell.html [L]
+</IfModule>
+
+# Long-cache hashed build assets.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType image/png "access plus 30 days"
+  ExpiresByType video/mp4 "access plus 30 days"
+</IfModule>
