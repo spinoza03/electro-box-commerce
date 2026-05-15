@@ -698,8 +698,13 @@ function CheckoutForm({
     <form
       onSubmit={onSubmit}
       onFocusCapture={onFirstInteract}
-      className="mt-6 max-w-sm space-y-3"
+      className="mt-6 max-w-sm space-y-3 rounded-xl border border-border/70 p-4"
     >
+      <p className="text-sm font-semibold text-[var(--navy-deep)]">
+        {lang === "ar"
+          ? "املأ النموذج أدناه لتأكيد طلبك"
+          : "Remplissez le formulaire ci-dessous pour commander"}
+      </p>
       {/* Quantity + total */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center border border-border/70 rounded-lg overflow-hidden">
