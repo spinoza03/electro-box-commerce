@@ -44,7 +44,6 @@ function ProductPage() {
   const [qty, setQty] = useState(1);
   const [variantSel, setVariantSel] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const { data: product, isLoading, isError } = useQuery({
@@ -308,18 +307,19 @@ function ProductPage() {
               </div>
             )}
 
-            {/* CTA */}
+            {/* Inline order form — clean bordered card, right under the price */}
             {inStock && (
-              <button
-                type="button"
-                onClick={() => {
-                  trackInitiateCheckout({ id: product.id, value: Number(product.price), currency: "MAD" });
-                  formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="btn-bolt mt-8 inline-flex items-center gap-2.5 px-8 py-4 rounded-xl text-base w-full md:w-auto justify-center"
-              >
-                <ShoppingBag className="h-5 w-5" /> {t("product.buy")}
-              </button>
+              <CheckoutForm
+                product={product}
+                qty={qty}
+                setQty={setQty}
+                variantSel={variantSel}
+                submitting={submitting}
+                setSubmitting={setSubmitting}
+                navigate={navigate}
+                t={t}
+                lang={lang}
+              />
             )}
 
             {/* HTML Description */}
@@ -334,27 +334,124 @@ function ProductPage() {
           </div>
         </div>
 
-        {/* ── Inline Order Form ── */}
-        {inStock && (
-          <section ref={formRef} className="mt-16 scroll-mt-24">
-            <CheckoutForm
-              product={product}
-              qty={qty}
-              setQty={setQty}
-              variantSel={variantSel}
-              submitting={submitting}
-              setSubmitting={setSubmitting}
-              navigate={navigate}
-              t={t}
-              lang={lang}
-            />
-          </section>
-        )}
+        {/* ── You may also like ── */}
+        <RelatedProducts
+          category={product.category}
+          currentId={product.id}
+          lang={lang}
+        />
 
         {/* ── Reviews Section ── */}
         <ProductReviews productId={product.id} />
       </div>
     </StoreLayout>
+  );
+}
+
+function RelatedProducts({
+  category,
+  currentId,
+  lang,
+}: {
+  category: string | null | undefined;
+  currentId: string;
+  lang: "fr" | "ar";
+}) {
+  const { data: items } = useQuery({
+    queryKey: ["related-products", category, currentId],
+    queryFn: async () => {
+      let q = supabase
+        .from("products")
+        .select("*")
+        .eq("is_active", true)
+        .neq("id", currentId)
+        .order("is_featured", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (category) q = q.eq("category", category);
+      const { data } = await q;
+      return data ?? [];
+    },
+  });
+
+  if (!items || items.length === 0) return null;
+
+  return (
+    <section dir={lang === "ar" ? "rtl" : "ltr"} className="mt-20 pt-12 border-t border-border/60">
+      <div className="mb-6">
+        <span className="text-xs font-semibold uppercase tracking-widest text-[var(--cyan-bright)]">
+          ⚡ {lang === "ar" ? "مقترحات" : "Suggestions"}
+        </span>
+        <h2 className="text-2xl md:text-3xl font-bold mt-1 tracking-tight text-[var(--navy-deep)]">
+          {lang === "ar" ? "قد يعجبك أيضًا" : "Vous aimerez aussi"}
+        </h2>
+      </div>
+
+      <div className="flex gap-3 md:gap-5 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-thin scroll-smooth">
+        {items.map((rp: any) => {
+          const rname = lang === "ar" && rp.name_ar ? rp.name_ar : rp.name;
+          const rDiscount =
+            rp.compare_at_price && Number(rp.compare_at_price) > Number(rp.price);
+          const rPct = rDiscount
+            ? Math.round(
+                ((Number(rp.compare_at_price) - Number(rp.price)) /
+                  Number(rp.compare_at_price)) *
+                  100
+              )
+            : 0;
+          return (
+            <Link
+              key={rp.id}
+              to="/p/$slug"
+              params={{ slug: rp.slug }}
+              className="product-glow group snap-start shrink-0 w-[46%] sm:w-[40%] md:w-[240px] bg-card rounded-2xl overflow-hidden border border-border/60"
+            >
+              <div
+                className="aspect-square overflow-hidden relative"
+                style={{
+                  background:
+                    "linear-gradient(160deg, rgba(0,210,255,0.10) 0%, rgba(10,25,47,0.06) 100%)",
+                }}
+              >
+                {rDiscount && (
+                  <span className="absolute top-2.5 left-2.5 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg">
+                    -{rPct}%
+                  </span>
+                )}
+                {rp.images?.[0] ? (
+                  <img
+                    src={rp.images[0]}
+                    alt={rname}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-out"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="h-10 w-10 text-[var(--navy-deep)]/25" />
+                  </div>
+                )}
+              </div>
+              <div className="p-3.5">
+                <h3 className="font-bold text-sm line-clamp-2 min-h-[2.5rem] text-[var(--navy-deep)]">
+                  {rname}
+                </h3>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-base font-extrabold text-[var(--navy-deep)]">
+                    {Number(rp.price).toFixed(0)}
+                    <span className="text-[11px] font-semibold ml-0.5">MAD</span>
+                  </span>
+                  {rDiscount && (
+                    <span className="text-xs text-muted-foreground line-through">
+                      {Number(rp.compare_at_price).toFixed(0)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -540,7 +637,6 @@ function CheckoutForm({
   t: (k: string) => string;
   lang: "fr" | "ar";
 }) {
-  const name = lang === "ar" && product.name_ar ? product.name_ar : product.name;
   const total = Number(product.price) * qty;
   const requiredVariants: Variant[] = product.has_variants && Array.isArray(product.variants) ? product.variants : [];
   const missing = requiredVariants.filter((v) => !variantSel[v.name]);
@@ -589,91 +685,87 @@ function CheckoutForm({
     setTimeout(() => navigate({ to: "/thank-you" }), 1200);
   }
 
+  const firedRef = useRef(false);
+  function onFirstInteract() {
+    if (firedRef.current) return;
+    firedRef.current = true;
+    trackInitiateCheckout({ id: product.id, value: Number(product.price), currency: "MAD" });
+  }
+
   return (
-    <div className="bg-gradient-to-br from-[var(--navy-deep)] to-[#0f1e3a] rounded-3xl p-6 md:p-10 text-white shadow-2xl">
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--cyan-bright)] bg-[var(--cyan-bright)]/10 border border-[var(--cyan-bright)]/30 px-3 py-1 rounded-full mb-3">
-          <ShieldCheck className="h-3 w-3" /> {lang === "ar" ? "الدفع عند الاستلام" : "Paiement à la livraison"}
-        </div>
-        <h2 className="text-2xl md:text-3xl font-extrabold">{t("checkout.title")}</h2>
-        <p className="text-white/60 text-sm mt-1">{t("checkout.subtitle")}</p>
+    <form
+      onSubmit={onSubmit}
+      onFocusCapture={onFirstInteract}
+      className="mt-7 rounded-2xl border border-border/60 bg-white shadow-[0_10px_34px_-14px_rgba(10,25,47,0.22)] overflow-hidden"
+    >
+      {/* Header strip */}
+      <div className="bg-[var(--navy-deep)] px-5 py-3.5 flex items-center justify-between gap-3">
+        <h2 className="text-white font-bold text-base md:text-lg">{t("checkout.title")}</h2>
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--cyan-bright)] bg-[var(--cyan-bright)]/12 border border-[var(--cyan-bright)]/30 px-2.5 py-1 rounded-full">
+          <ShieldCheck className="h-3 w-3" /> {lang === "ar" ? "الدفع عند الاستلام" : "COD"}
+        </span>
       </div>
 
-      <div className="grid md:grid-cols-[1fr_320px] gap-6">
-        <form onSubmit={onSubmit} className="bg-white text-foreground rounded-2xl p-5 md:p-6 space-y-4">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground -mb-1">
+      <div className="p-5 md:p-6 space-y-5">
+        {/* Quantity + total */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground">{t("checkout.qty")}</label>
+            <div className="flex items-center mt-1.5 border border-border/70 rounded-xl overflow-hidden w-fit">
+              <button
+                type="button"
+                onClick={() => setQty(Math.max(1, qty - 1))}
+                className="h-10 w-10 flex items-center justify-center text-lg font-bold text-[var(--navy-deep)] hover:bg-muted/60 transition-colors"
+              >−</button>
+              <span className="h-10 px-5 flex items-center justify-center font-bold text-[var(--navy-deep)] border-x border-border/70 min-w-[3.5rem]">{qty}</span>
+              <button
+                type="button"
+                onClick={() => setQty(Math.min(product.stock_count || 50, qty + 1))}
+                className="h-10 w-10 flex items-center justify-center text-lg font-bold text-[var(--navy-deep)] hover:bg-muted/60 transition-colors"
+              >+</button>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-muted-foreground">{t("checkout.total")}</div>
+            <div className="text-2xl md:text-3xl font-extrabold text-[var(--navy-deep)] leading-tight">
+              {total.toFixed(0)} <span className="text-sm font-bold">MAD</span>
+            </div>
+            <div className="text-[11px] font-semibold text-emerald-600">
+              {lang === "ar" ? "التوصيل مجاني" : "Livraison gratuite"}
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-border/50" />
+
+        {/* Delivery info */}
+        <div className="space-y-4">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             {lang === "ar" ? "معلومات التوصيل" : "Informations de livraison"}
           </div>
           <CheckoutField label={t("checkout.name")} name="customer_name" required />
-          <CheckoutField label={t("checkout.phone")} name="phone" type="tel" required inputMode="tel" />
-          <CheckoutField label={t("checkout.city")} name="city" required />
+          <div className="grid grid-cols-2 gap-3">
+            <CheckoutField label={t("checkout.phone")} name="phone" type="tel" required inputMode="tel" />
+            <CheckoutField label={t("checkout.city")} name="city" required />
+          </div>
           <CheckoutField label={t("checkout.address")} name="address" required textarea />
           <CheckoutField label={t("checkout.notes")} name="notes" textarea />
+        </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="btn-bolt w-full flex items-center justify-center gap-2 py-4 rounded-xl text-base disabled:opacity-60"
-          >
-            {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingBag className="h-5 w-5" />}
-            {t("checkout.submit")}
-          </button>
-          <p className="text-center text-xs text-muted-foreground inline-flex items-center justify-center gap-1.5 w-full">
-            <ShieldCheck className="h-3.5 w-3.5 text-[var(--cyan-bright)]" />
-            {lang === "ar" ? "الدفع عند الاستلام · 100% آمن" : "Paiement à la livraison · 100% sécurisé"}
-          </p>
-        </form>
-
-        <aside className="bg-white/[0.04] border border-white/10 rounded-2xl p-5 h-fit backdrop-blur">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-3">
-            {lang === "ar" ? "طلبك" : "Votre commande"}
-          </div>
-          <div className="flex gap-3 items-start">
-            {product.images?.[0] && (
-              <img src={product.images[0]} alt={name} className="h-16 w-16 rounded-xl object-cover border border-white/10" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm line-clamp-2">{name}</p>
-              <p className="text-xs text-white/60 mt-0.5">{Number(product.price).toFixed(0)} MAD</p>
-            </div>
-          </div>
-
-          {Object.keys(variantSel).length > 0 && (
-            <div className="mt-3 space-y-1">
-              {Object.entries(variantSel).map(([k, v]) => (
-                <div key={k} className="text-xs text-white/70">
-                  <span className="text-white/50">{k}:</span> <span className="font-semibold text-white">{v}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-4">
-            <label className="text-xs text-white/60">{t("checkout.qty")}</label>
-            <div className="flex items-center mt-1.5 bg-white/10 rounded-xl p-1 w-fit">
-              <button type="button" onClick={() => setQty(Math.max(1, qty - 1))} className="h-8 w-8 rounded-lg hover:bg-white/10 font-bold transition-colors">−</button>
-              <span className="h-8 px-4 flex items-center min-w-[3rem] justify-center font-bold">{qty}</span>
-              <button type="button" onClick={() => setQty(Math.min(product.stock_count || 50, qty + 1))} className="h-8 w-8 rounded-lg hover:bg-white/10 font-bold transition-colors">+</button>
-            </div>
-          </div>
-
-          <div className="mt-5 pt-4 border-t border-white/10 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-white/60">{lang === "ar" ? "المجموع الفرعي" : "Sous-total"}</span>
-              <span className="font-semibold">{total.toFixed(0)} MAD</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-white/60">{lang === "ar" ? "التوصيل" : "Livraison"}</span>
-              <span className="font-bold text-emerald-400">{lang === "ar" ? "مجاني" : "Gratuite"}</span>
-            </div>
-            <div className="flex justify-between items-baseline pt-3 border-t border-white/10">
-              <span className="font-bold">{t("checkout.total")}</span>
-              <span className="text-xl font-extrabold text-[var(--cyan-bright)]">{total.toFixed(0)} <span className="text-xs">MAD</span></span>
-            </div>
-          </div>
-        </aside>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="btn-bolt w-full flex items-center justify-center gap-2 py-4 rounded-xl text-base disabled:opacity-60"
+        >
+          {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingBag className="h-5 w-5" />}
+          {t("checkout.submit")}
+        </button>
+        <p className="text-center text-xs text-muted-foreground inline-flex items-center justify-center gap-1.5 w-full">
+          <ShieldCheck className="h-3.5 w-3.5 text-[var(--cyan-bright)]" />
+          {lang === "ar" ? "الدفع عند الاستلام · 100% آمن" : "Paiement à la livraison · 100% sécurisé"}
+        </p>
       </div>
-    </div>
+    </form>
   );
 }
 

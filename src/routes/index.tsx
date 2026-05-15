@@ -153,7 +153,6 @@ function HomePage() {
         <video
           src="/logo-anime.mp4"
           autoPlay
-          loop
           muted
           playsInline
           preload="auto"
@@ -298,9 +297,14 @@ function HomePage() {
               {lang === "ar" ? "عرض الكل" : "Voir tout"} <ArrowRight className="h-3.5 w-3.5" />
             </a>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
+          <div className="flex gap-3 md:gap-5 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 md:-mx-6 md:px-6 scrollbar-thin scroll-smooth">
             {featured.map((p) => (
-              <ProductCard key={p.id} product={p} lang={lang} t={t} />
+              <div
+                key={p.id}
+                className="snap-start shrink-0 w-[46%] sm:w-[40%] md:w-[260px] lg:w-[280px]"
+              >
+                <ProductCard product={p} lang={lang} t={t} />
+              </div>
             ))}
           </div>
         </section>
