@@ -29,7 +29,7 @@ const checkoutSchema = z.object({
   customer_name: z.string().trim().min(2).max(120),
   phone: z.string().trim().min(6).max(30),
   city: z.string().trim().min(2).max(80),
-  address: z.string().trim().min(4).max(400),
+  address: z.string().trim().min(2).max(400),
   notes: z.string().max(500).optional(),
 });
 
@@ -652,12 +652,14 @@ function CheckoutForm({
       return;
     }
     const fd = new FormData(e.currentTarget);
+    const city = String(fd.get("city") || "").trim();
     const parsed = checkoutSchema.safeParse({
       customer_name: fd.get("customer_name"),
       phone: fd.get("phone"),
-      city: fd.get("city"),
-      address: fd.get("address"),
-      notes: fd.get("notes") || undefined,
+      city,
+      // No separate address field anymore — reuse the city so the
+      // NOT NULL orders.address constraint is still satisfied.
+      address: city,
     });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -696,75 +698,43 @@ function CheckoutForm({
     <form
       onSubmit={onSubmit}
       onFocusCapture={onFirstInteract}
-      className="mt-7 rounded-2xl border border-border/60 bg-white shadow-[0_10px_34px_-14px_rgba(10,25,47,0.22)] overflow-hidden"
+      className="mt-6 max-w-sm space-y-3"
     >
-      {/* Header strip */}
-      <div className="bg-[var(--navy-deep)] px-5 py-3.5 flex items-center justify-between gap-3">
-        <h2 className="text-white font-bold text-base md:text-lg">{t("checkout.title")}</h2>
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--cyan-bright)] bg-[var(--cyan-bright)]/12 border border-[var(--cyan-bright)]/30 px-2.5 py-1 rounded-full">
-          <ShieldCheck className="h-3 w-3" /> {lang === "ar" ? "الدفع عند الاستلام" : "COD"}
-        </span>
+      {/* Quantity + total */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center border border-border/70 rounded-lg overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setQty(Math.max(1, qty - 1))}
+            className="h-9 w-9 flex items-center justify-center font-bold text-[var(--navy-deep)] hover:bg-muted/60 transition-colors"
+          >−</button>
+          <span className="h-9 px-4 flex items-center justify-center font-bold text-[var(--navy-deep)] border-x border-border/70 min-w-[3rem]">{qty}</span>
+          <button
+            type="button"
+            onClick={() => setQty(Math.min(product.stock_count || 50, qty + 1))}
+            className="h-9 w-9 flex items-center justify-center font-bold text-[var(--navy-deep)] hover:bg-muted/60 transition-colors"
+          >+</button>
+        </div>
+        <div className="text-right">
+          <span className="text-xs text-muted-foreground">{t("checkout.total")} </span>
+          <span className="text-lg font-extrabold text-[var(--navy-deep)]">
+            {total.toFixed(0)} <span className="text-xs font-bold">MAD</span>
+          </span>
+        </div>
       </div>
 
-      <div className="p-5 md:p-6 space-y-5">
-        {/* Quantity + total */}
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <label className="text-xs font-semibold text-muted-foreground">{t("checkout.qty")}</label>
-            <div className="flex items-center mt-1.5 border border-border/70 rounded-xl overflow-hidden w-fit">
-              <button
-                type="button"
-                onClick={() => setQty(Math.max(1, qty - 1))}
-                className="h-10 w-10 flex items-center justify-center text-lg font-bold text-[var(--navy-deep)] hover:bg-muted/60 transition-colors"
-              >−</button>
-              <span className="h-10 px-5 flex items-center justify-center font-bold text-[var(--navy-deep)] border-x border-border/70 min-w-[3.5rem]">{qty}</span>
-              <button
-                type="button"
-                onClick={() => setQty(Math.min(product.stock_count || 50, qty + 1))}
-                className="h-10 w-10 flex items-center justify-center text-lg font-bold text-[var(--navy-deep)] hover:bg-muted/60 transition-colors"
-              >+</button>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">{t("checkout.total")}</div>
-            <div className="text-2xl md:text-3xl font-extrabold text-[var(--navy-deep)] leading-tight">
-              {total.toFixed(0)} <span className="text-sm font-bold">MAD</span>
-            </div>
-            <div className="text-[11px] font-semibold text-emerald-600">
-              {lang === "ar" ? "التوصيل مجاني" : "Livraison gratuite"}
-            </div>
-          </div>
-        </div>
+      <CheckoutField label={t("checkout.name")} name="customer_name" required />
+      <CheckoutField label={t("checkout.phone")} name="phone" type="tel" required inputMode="tel" />
+      <CheckoutField label={t("checkout.city")} name="city" required />
 
-        <div className="border-t border-border/50" />
-
-        {/* Delivery info */}
-        <div className="space-y-4">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            {lang === "ar" ? "معلومات التوصيل" : "Informations de livraison"}
-          </div>
-          <CheckoutField label={t("checkout.name")} name="customer_name" required />
-          <div className="grid grid-cols-2 gap-3">
-            <CheckoutField label={t("checkout.phone")} name="phone" type="tel" required inputMode="tel" />
-            <CheckoutField label={t("checkout.city")} name="city" required />
-          </div>
-          <CheckoutField label={t("checkout.address")} name="address" required textarea />
-          <CheckoutField label={t("checkout.notes")} name="notes" textarea />
-        </div>
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="btn-bolt w-full flex items-center justify-center gap-2 py-4 rounded-xl text-base disabled:opacity-60"
-        >
-          {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingBag className="h-5 w-5" />}
-          {t("checkout.submit")}
-        </button>
-        <p className="text-center text-xs text-muted-foreground inline-flex items-center justify-center gap-1.5 w-full">
-          <ShieldCheck className="h-3.5 w-3.5 text-[var(--cyan-bright)]" />
-          {lang === "ar" ? "الدفع عند الاستلام · 100% آمن" : "Paiement à la livraison · 100% sécurisé"}
-        </p>
-      </div>
+      <button
+        type="submit"
+        disabled={submitting}
+        className="btn-bolt w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm disabled:opacity-60"
+      >
+        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
+        {t("checkout.submit")}
+      </button>
     </form>
   );
 }

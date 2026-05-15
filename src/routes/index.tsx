@@ -62,6 +62,7 @@ export const Route = createFileRoute("/")(  {
 function HomePage() {
   const { t, lang, dir } = useT();
   const [selectedCat, setSelectedCat] = useState<string>("");
+  const [visibleCount, setVisibleCount] = useState(5);
 
   useEffect(() => {
     // Wait a tick so the pixel script has a chance to inject before we fire.
@@ -130,7 +131,7 @@ function HomePage() {
         .select("*")
         .eq("is_active", true)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(200);
       return data ?? [];
     },
   });
@@ -140,6 +141,14 @@ function HomePage() {
   const filteredProducts = selectedCat
     ? (allProducts ?? []).filter((p: any) => (p.category || "").toLowerCase() === selectedCat)
     : (allProducts ?? []);
+
+  // Reset the "load more" window whenever the category filter changes.
+  useEffect(() => {
+    setVisibleCount(5);
+  }, [selectedCat]);
+
+  const visibleProducts = filteredProducts.slice(0, visibleCount);
+  const hasMoreProducts = visibleCount < filteredProducts.length;
 
   return (
     <StoreLayout>
@@ -331,10 +340,24 @@ function HomePage() {
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
-          {filteredProducts.map((p: any) => (
+          {visibleProducts.map((p: any) => (
             <ProductCard key={p.id} product={p} lang={lang} t={t} />
           ))}
         </div>
+        {hasMoreProducts && (
+          <div className="mt-10 text-center">
+            <button
+              onClick={() => setVisibleCount((c) => c + 5)}
+              className="btn-pill inline-flex items-center gap-2 px-8 py-3.5 text-sm"
+            >
+              {lang === "ar" ? "عرض المزيد من المنتجات" : "Voir plus de produits"}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            <p className="mt-3 text-xs text-muted-foreground">
+              {visibleProducts.length} / {filteredProducts.length} {lang === "ar" ? "منتج" : "produits"}
+            </p>
+          </div>
+        )}
         {filteredProducts.length === 0 && (
           <div className="text-center py-20">
             <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
